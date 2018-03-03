@@ -19,6 +19,7 @@ class Game:
         pg.key.set_repeat(500,100) # Keyboard repeating function, (time key is held, time between repeats)
         # Ensures game remains running until set otherwise
         self.running = True
+        self.load_data()
 
     # Quit function
     def quit(self):
@@ -30,27 +31,32 @@ class Game:
         # Assign var gameFolder to root folder
         gameFolder = path.dirname(__file__)
         # Creates list mapData to store all lines in map.txt
-        mapData = []
+        self.mapData = []
         # Open map.txt
         with open(path.join(gameFolder, 'map.txt'),'rt') as f:
             for line in f:
-                mapData.append(line)
-        # Debug
-        print (mapData)
+                self.mapData.append(line)
+        # # Debug
+        # print (mapData)
 
 
     # Called to initalize the game
     def new(self):
+
         # Initalizes the all_sprites and walls group
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
-        # Initalizes an instance of the Player at (10,10)
-        self.player = Player(self,10,10)
-        ###### NOT WORKING  - 2/03/18
-        #### ==== CODE BELOW ====
+
         # Enumerate takes item AND index number <=== IMPORTANT!
-        # for row, tiles in enumerate(self.map_data):
-        #     pass
+        for row, tiles in enumerate(self.mapData):
+            for col, tile in enumerate(tiles):
+                # If tile is 1, spawn a Wall sprite at the x and y coordinates
+                if tile == '1':
+                    Wall(self,col,row)
+                # If tile is P or p, spawn a Player sprite at the x and y coordinates
+                if tile == 'P':
+                    self.player = Player(self,col,row)
+
         # Start a new game
         self.run()
 
@@ -59,7 +65,8 @@ class Game:
         # Game Loop
         self.playing = True
         while self.playing:
-            self.clock.tick(FPS)
+            # Delta time, difference in time, in seconds.
+            self.dt = self.clock.tick(FPS)/1000
             self.events()
             self.update()
             self.draw()
@@ -75,28 +82,26 @@ class Game:
         for event in pg.event.get():
             # check for closing window
             if event.type == pg.QUIT:
-                self.playing = False
-            self.running = False
+                self.quit()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
-                # Moves the player sprite in x or y values,
-                # triggered by event handling of arrow key keypresses
-                if event.key == pg.K_LEFT:
-                    self.player.move(dx=-1)
-                if event.key == pg.K_RIGHT:
-                    self.player.move(dx=1)
-                if event.key == pg.K_UP:
-                    self.player.move(dy=-1)
-                if event.key == pg.K_DOWN:
-                    self.player.move(dy=1)
+                # # Moves the player sprite in x or y values,
+                # # triggered by event handling of arrow key keypresses
+                # if event.key == pg.K_LEFT:
+                #     self.player.move(dx=-1)
+                # if event.key == pg.K_RIGHT:
+                #     self.player.move(dx=1)
+                # if event.key == pg.K_UP:
+                #     self.player.move(dy=-1)
+                # if event.key == pg.K_DOWN:
+                #     self.player.move(dy=1)
 
     # Function to draw gridmap for game window
     def draw_grid(self):
         # Draws vertical lines
         for x in range(0,WIDTH,TILESIZE):
             pg.draw.line(self.screen, LIGHTGREY, (x,0),(x,HEIGHT))
-
         # Draws horizontal lines
         for y in range(0,HEIGHT,TILESIZE):
             pg.draw.line(self.screen, LIGHTGREY,(0,y),(WIDTH,y))

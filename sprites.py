@@ -12,27 +12,54 @@ class Player(pg.sprite.Sprite):
         self.image = pg.Surface((TILESIZE,TILESIZE))
         self.image.fill(YELLOW)
         self.rect = self.image.get_rect()
-        self.x = x
-        self.y = y
+        self.vx,self.vy = 0,0
+        self.x = x * TILESIZE
+        self.y = y * TILESIZE
 
-    # Function to move the Player object in various directions
+    # Function to get key presses, and move character in direction in event of keypress
+    def get_keys(self):
+        # If statements allow diagonal movement
+        self.vx,self.vy = 0,0
+        keys = pg.key.get_pressed()
+        if keys[pg.K_LEFT] or keys[pg.K_a]:
+            self.vx = -PLAYER_SPEED
+        if keys[pg.K_RIGHT] or keys[pg.K_d]:
+            self.vx = PLAYER_SPEED
+        if keys[pg.K_UP] or keys[pg.K_w]:
+            self.vy = -PLAYER_SPEED
+        if keys[pg.K_DOWN] or keys[pg.K_s]:
+            self.vy = PLAYER_SPEED
+        # Regulation of diagonal movement speed through pythag theorem
+        if self.vx != 0 and self.vy != 0:
+            self.vx *= 0.7071
+            self.vy *= 0.7071
+
     def move(self,dx=0,dy=0):
-        if self.wallCollision(dx,dy) == False:
+        if not self.collide_with_walls(dx,dy):
             self.x += dx
             self.y += dy
 
     # Function to test if next movement of the Player object will collide with an instance of a wall.
     # If the next movement collides, the function will return True.
-    def wallCollision(self,dx=0,dy=0):
+    def collide_with_walls(self,dx=0,dy=0):
         for wall in self.game.walls:
             if wall.x == self.x + dx and wall.y == self.y + dy:
                 return True
         return False
 
-    # Function that updates the current position of the sprites EVERY frame.
+    # Function that executes at every frame of the game.
     def update(self):
-        self.rect.x = self.x * TILESIZE
-        self.rect.y = self.y * TILESIZE
+        self.get_keys()
+        self.x += self.vx * self.game.dt
+        self.y += self.vy * self.game.dt
+        self.rect.x = self.x
+        self.rect.y = self.y
+        if pg.sprite.spritecollideany(self,self.game.walls):
+            self.x -= self.vx * self.game.dt
+            self.y -= self.vy * self.game.dt
+            self.rect.x = self.x
+            self.rect.y = self.y
+
 
 # Wall sprite class
 class Wall(pg.sprite.Sprite):
