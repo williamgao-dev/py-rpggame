@@ -26,23 +26,8 @@ class Game:
         pg.quit()
         quit()
 
-    # Load assets, gamesounds, spriteimages, sound channels.. etc.
-    def load_data(self):
-        # Assign var gameFolder to root folder
-        gameFolder = path.dirname(__file__)
-        # Creates list mapData to store all lines in map.txt
-        self.mapData = []
-        # Open map.txt
-        with open(path.join(gameFolder, 'map.txt'),'rt') as f:
-            for line in f:
-                self.mapData.append(line)
-        # # Debug
-        # print (mapData)
-
-
     # Called to initalize the game
     def new(self):
-
         # Initalizes the all_sprites and walls group
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
@@ -80,22 +65,13 @@ class Game:
     def events(self):
         # Game Loop - Events
         for event in pg.event.get():
-            # check for closing window
+            # Check for closing window
             if event.type == pg.QUIT:
                 self.quit()
+            # Check for ESC key
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
-                # # Moves the player sprite in x or y values,
-                # # triggered by event handling of arrow key keypresses
-                # if event.key == pg.K_LEFT:
-                #     self.player.move(dx=-1)
-                # if event.key == pg.K_RIGHT:
-                #     self.player.move(dx=1)
-                # if event.key == pg.K_UP:
-                #     self.player.move(dy=-1)
-                # if event.key == pg.K_DOWN:
-                #     self.player.move(dy=1)
 
     # Function to draw gridmap for game window
     def draw_grid(self):
