@@ -16,9 +16,11 @@ FPS = 60
 TITLE = "Tilemap"
 BGCOLOR = DARKGREY
 
-TILESIZE = 32
+# Tilesize can be modified, however it needs to be a multiple of 32.
+TILESIZE = 50
 GRIDWIDTH = WIDTH/TILESIZE
 GRIDHEIGHT = HEIGHT/TILESIZE
 
 # Player settings
-PLAYER_SPEED = 300
+PLAYER_SPEED = 500
+PLAYER_IMG = 'manBlue_gun.png'
