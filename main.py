@@ -33,7 +33,7 @@ class Game:
         pg.init()
         pg.mixer.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        pg.display.set_caption(TITLE
+        pg.display.set_caption(TITLE)
 
         # Starts a timer - used to record events
         self.clock = pg.time.Clock()
