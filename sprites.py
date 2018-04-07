@@ -1,4 +1,5 @@
 import pygame as pg
+from tilemap import collide_hit_rect
 from settings import *
 # Loading pygame vector class
 vec = pg.math.Vector2
@@ -11,10 +12,6 @@ class Player(pg.sprite.Sprite):
 
         pg.sprite.Sprite.__init__(self,self.groups)
 
-        # Sets an image in the dimensions of tilesize*tilesize for the player
-        # sprite
-        self.image = pg.Surface((TILESIZE,TILESIZE))
-
         # Sets attributes of class Player, sets a reference to the game class
         self.game = game
 
@@ -22,6 +19,10 @@ class Player(pg.sprite.Sprite):
         # the player image loaded in game.load_data
         self.image = game.player_img
         self.rect = self.image.get_rect()
+
+        # Different rectangle for collision detection
+        self.hit_rect = PLAYER_HIT_RECT
+        self.hit_rect.center = self.rect.center
 
         # VECTORS
         # Velocity vector
@@ -61,27 +62,35 @@ class Player(pg.sprite.Sprite):
     # Function that WILL executes at every frame of the game.
     def update(self):
         self.get_keys()
+
+        # Transform the image of the player so it rotates
+        # Rotates image around the centre to ensure consistent movement
+        self.image = pg.transform.rotate(self.game.player_img, self.rot)
+
         self.pos += self.vel * self.game.dt
+        self.rect = self.image.get_rect()
 
         # Updating rotation (mod 360 means that we will always go back to 0 at 360 degrees)
         self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
 
+        # Note that I use hit_rect instead of the normal rectangle to ensure consistent collision
+        # as the normal rect changes in proportion of the image in the middle, but this new one
+        # is a constant rectangle thus the hitbox of the rectangle remains constant as well.
+
         # Updates x value
-        self.rect.centerx = self.pos.x
+        self.hit_rect.centerx = self.pos.x
 
         # Calls collide_with_walls('x') every frame, checking if theres a collision
         self.collide_with_walls('x')
 
         # Update y value
-        self.rect.centery = self.pos.y
+        self.hit_rect.centery = self.pos.y
 
         # Calls collide_with_walls('y') every frame
         self.collide_with_walls('y')
 
-        # Transform the image of the player so it rotates
-        self.image = pg.transform.rotate(self.game.player_img, self.rot)
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
+
+        self.rect.center = self.hit_rect.center
 
     def collide_with_walls(self,dir):
         '''
@@ -89,36 +98,42 @@ class Player(pg.sprite.Sprite):
             Having TWO checks ensures that in event of one x or y value collision,
             Movement the other way still works, thus we can slide down walls.
             If direction is x, detect collisions.
+
+            rect HIT_RECT is used for collisions instead of the normal rectangle
+            as it provides more consistent collisions as it is a static rectangle
+            unlike the rectangle surrounding the player sprite that's used to track
+            movement
         '''
 
+        # If direction is x, perform collision checking for x axis
         if dir == 'x':
             # Detects collision between player and walls.
-            hits = pg.sprite.spritecollide(self,self.game.walls,False)
+            hits = pg.sprite.spritecollide(self,self.game.walls,False, collide_hit_rect)
             # If hits == True.
             if hits:
                 # If velocity is right,
                 if self.vel.x > 0:
-                    self.pos.x = hits[0].rect.left - self.rect.width /2
+                    self.pos.x = hits[0].rect.left - self.hit_rect.width / 2.0
                 # If velocity is left
                 if self.vel.x < 0:
-                    self.pos.x = hits[0].rect.right + self.rect.width /2
+                    self.pos.x = hits[0].rect.right + self.hit_rect.width / 2.0
                 self.vel.x = 0
-                self.rect.x = self.pos.x
-        # If direction is y, detect collisions
+                self.hit_rect.centerx = self.pos.x
 
+        # If direction is y, perform collision checking for y axis
         if dir == 'y':
             # Detects collision between player and walls.
-            hits = pg.sprite.spritecollide(self,self.game.walls,False)
+            hits = pg.sprite.spritecollide(self,self.game.walls,False, collide_hit_rect)
             # If hits == True
             if hits:
                 # If velocity is down
                 if self.vel.y > 0:
-                    self.pos.y = hits[0].rect.top - self.rect.height /2
+                    self.pos.y = hits[0].rect.top - self.hit_rect.height / 2.0
                 # If velocity is up
                 if self.vel.y < 0:
-                    self.pos.y = hits[0].rect.bottom + self.rect.height /2
+                    self.pos.y = hits[0].rect.bottom + self.hit_rect.height / 2.0
                 self.vel.y = 0
-                self.rect.y = self.pos.y
+                self.hit_rect.centery = self.pos.y
 
 # Wall sprite class
 class Wall(pg.sprite.Sprite):

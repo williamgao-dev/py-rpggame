@@ -1,5 +1,7 @@
 import pygame as pg
 
+DEBUG_MODE = "ON"
+
 
 # Colours
 BLACK = (0,0,0)
