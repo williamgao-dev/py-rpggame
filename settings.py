@@ -1,7 +1,8 @@
 import pygame as pg
+import random
 vec = pg.math.Vector2
 DEBUG_MODE = "ON"
-DRAW_GRID = "OFF"
+DRAW_GRID = "ON"
 
 
 # Colours
@@ -43,11 +44,12 @@ KICKBACK = 200
 
 # Mob settings`
 MOB_IMG = 'zombie1_hold.png'
-MOB_SPEED = 150
+MOB_SPEED = random.choice([150, 100, 75, 125, 25])
 MOB_HIT_RECT = pg.Rect(0,0,0,35)
 MOB_HEALTH = 100
 MOB_DAMAGE = 10
 MOB_KNOCKBACK = 20
+AVOID_RADIUS = 50
 
 # Gun settings
 BULLET_IMG = 'bullet.png'

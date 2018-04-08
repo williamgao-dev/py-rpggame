@@ -82,7 +82,7 @@ class Player(pg.sprite.Sprite):
         self.vel = vec(0,0)
 
         # Position vector
-        self.pos = vec(x,y) * TILESIZE
+        self.pos = vec(x,y)
 
         self.rot = 0
 
@@ -160,30 +160,6 @@ class Player(pg.sprite.Sprite):
 
         self.rect.center = self.hit_rect.center
 
-
-
-# Wall sprite class
-class Wall(pg.sprite.Sprite):
-    def __init__(self,game,x,y):
-
-
-        # Defines which groups the sprite should be in
-        self.groups = game.all_sprites, game.walls
-
-        # Initalizes into groups (defined above)
-        pg.sprite.Sprite.__init__(self,self.groups)
-
-        # Attributes of the wall
-        self.game = game
-        self.image = game.wall_img
-        self.rect = self.image.get_rect()
-        self.x = x
-        self.y = y
-
-        # Makes the wall the size of a tile
-        self.rect.x = x * TILESIZE
-        self.rect.y = y * TILESIZE
-
 # Mob sprite class
 class Mob(pg.sprite.Sprite):
     def __init__(self,game,x,y):
@@ -199,21 +175,44 @@ class Mob(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.hit_rect = MOB_HIT_RECT.copy()
         self.hit_rect.center = self.rect.center
-        self.pos = vec(x,y) * TILESIZE
+        self.pos = vec(x,y)
         self.rect.center = self.pos
         self.rot = 0
         self.health = 100
+        self.speed = MOB_SPEED
 
         # Vectors
         self.vel = vec(0,0)
         self.acc = vec(0,0)
+
+    def avoid_mobs(self):
+        # For each mob in mobs
+        for mob in self.game.mobs:
+            # Ignore current mob
+            if mob != self:
+                # Get the distance between current mob and mob in group
+                dist = self.pos - mob.pos
+                # If the distance between them is less than 50
+                if 0 < dist.length() < AVOID_RADIUS:
+                    # Spread them throughout a radius to avoid them clumping up
+                    self.acc += dist.normalize()
 
     def update(self):
         self.rot = (self.game.player.pos - self.pos).angle_to(vec(1,0))
         self.image = pg.transform.rotate(self.game.mob_img, self.rot)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
-        self.acc = vec(MOB_SPEED,0).rotate(-self.rot)
+
+        # Unit vector
+        self.acc = vec(1,0).rotate(-self.rot)
+
+        # Mechanism to prevent mobs from clumping. Refer to avoid_mobs for documentation
+        self.avoid_mobs()
+
+        # Use self.speed as MOB_SPEEDS has a bunch of varying speeds, meaning
+        # zombies will have different speeds, instead of all them being statically
+        # moving together
+        self.acc.scale_to_length(self.speed)
         self.acc += self.vel * -1
         self.vel += self.acc * self.game.dt
         self.pos += self.vel * self.game.dt + 0.5 * self.acc * self.game.dt ** 2
@@ -224,7 +223,6 @@ class Mob(pg.sprite.Sprite):
 
         if self.health <= 0:
             self.kill()
-
 
     def draw_health(self):
         if self.health > 60:
@@ -252,6 +250,7 @@ class Bullet(pg.sprite.Sprite):
         self.game = game
         self.image = game.bullet_img
         self.rect = self.image.get_rect()
+        self.hit_rect = self.rect
         self.pos = vec(pos)
         self.rect.center = pos
 
@@ -271,3 +270,45 @@ class Bullet(pg.sprite.Sprite):
         # If bullet hits any wall, it stops.
         if pg.sprite.spritecollideany(self,self.game.walls):
             self.kill()
+
+# Wall sprite class (obselete - unless using walls instead of a TiledMap)
+class Wall(pg.sprite.Sprite):
+    def __init__(self,game,x,y):
+
+
+        # Defines which groups the sprite should be in
+        self.groups = game.all_sprites, game.walls
+
+        # Initalizes into groups (defined above)
+        pg.sprite.Sprite.__init__(self,self.groups)
+
+        # Attributes of the wall
+        self.game = game
+        self.image = game.wall_img
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
+
+        # Makes the wall the size of a tile
+        self.rect.x = x * TILESIZE
+        self.rect.y = y * TILESIZE
+
+# Obstacle class
+class Obstacle(pg.sprite.Sprite):
+    def __init__(self,game,x,y,w,h):
+
+        # Defines which groups the sprite should be in
+        self.groups = game.walls
+
+        # Initalizes into groups (defined above)
+        pg.sprite.Sprite.__init__(self,self.groups)
+
+        # Attributes of the Obstacle
+        self.game = game
+        self.rect = pg.Rect (x,y,w,h)
+
+        self.x = x
+        self.y = y
+
+        self.rect.x = x
+        self.rect.y = y

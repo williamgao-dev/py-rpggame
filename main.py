@@ -67,11 +67,14 @@ class Game:
     def load_data(self):
         game_folder = path.dirname(__file__)
 
-        # Image folder initalization
+        # Assets folder initalization
         img_folder = path.join(game_folder, 'img')
+        map_folder = path.join(game_folder, 'maps')
 
-        # Initalizing the map
-        self.map = Map(path.join(game_folder,'map.txt'))
+        # Initalizing the TiledMap
+        self.map = TiledMap(path.join(map_folder, 'level1.tmx'))
+        self.map_img = self.map.make_map()
+        self.map_rect = self.map_img.get_rect()
 
         # Player image variable initalization
         # PLAYER_IMG is specified in the constants in settings.py
@@ -99,24 +102,33 @@ class Game:
         self.mobs = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
 
-        # Enumerate takes item AND index number <=== IMPORTANT!
-        for row, tiles in enumerate(self.map.data):
-            for col, tile in enumerate(tiles):
+        # # Enumerate takes item AND index number <=== IMPORTANT!
+        # for row, tiles in enumerate(self.map.data):
+        #     for col, tile in enumerate(tiles):
+        #
+        #         # If tile is 1, spawn a Wall sprite at the x and y coordinates
+        #         if tile == '1':
+        #             Wall(self,col,row)
+        #
+        #         # If tile is P, spawn a Player sprite at the x and y coordinates
+        #         if tile == 'P':
+        #             self.player = Player(self,col,row)
+        #
+        #         # If tile is M, spawn a Player sprite at the x and y coordinates
+        #         if tile == 'M':
+        #             Mob(self,col,row)
+        for object in self.map.tmxdata.objects:
+            if object.name == 'player':
+                self.player = Player(self, object.x, object.y)
+            if object.name == 'wall':
+                Obstacle(self,object.x,object.y,object.width,object.height)
+            if object.name == 'zombie':
+                Mob(self, object.x, object.y)
 
-                # If tile is 1, spawn a Wall sprite at the x and y coordinates
-                if tile == '1':
-                    Wall(self,col,row)
-
-                # If tile is P, spawn a Player sprite at the x and y coordinates
-                if tile == 'P':
-                    self.player = Player(self,col,row)
-
-                # If tile is M, spawn a Player sprite at the x and y coordinates
-                if tile == 'M':
-                    Mob(self,col,row)
-
+        # self.player = Player(self,5,5)
         # Initalize the camera
         self.camera = Camera(self.map.width,self.map.height)
+
 
 
     # >> Game Loop << Keeps running while self.playing = True
@@ -151,8 +163,12 @@ class Game:
         for hit in hits:
             self.player.health -= MOB_DAMAGE
             hit.vel = vec(0,0)
-            if self.player.health <= 0:
-                self.playing = False
+            if DEBUG_MODE == "ON":
+                if self.player.health <= 0:
+                    self.player.health = 100
+            else:
+                if self.player.health <= 0:
+                    self.playing = False
 
         if hits:
             self.player.pos += vec(MOB_KNOCKBACK,0).rotate(-hits[0].rot)
@@ -195,12 +211,21 @@ class Game:
     # Blits and draws all sprites to screen
 
     def draw(self):
+        # Makes the program title an fps counter if debugmode is on
         if DEBUG_MODE == "ON":
             pg.display.set_caption("{:.2f}".format(self.clock.get_fps()))
-        self.screen.fill(BGCOLOR)
+        # self.screen.fill(BGCOLOR)
+        self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
         for sprite in self.all_sprites:
             if isinstance(sprite, Mob):
                 sprite.draw_health()
+            # Draws an outline on the hitbox of all sprite rectangles if debugmode is on
+            if DEBUG_MODE == "ON":
+                pg.draw.rect(self.screen, BLACK, self.camera.apply_rect(sprite.hit_rect), 1)
+        # Draws an outline on the hitbox of all wall rectangles if debugmode is on
+        if DEBUG_MODE == "ON":
+            for wall in self.walls:
+                pg.draw.rect(self.screen, BLACK, self.camera.apply_rect(wall.rect), 1)
         if DRAW_GRID == "ON":
             self.draw_grid()
         for sprite in self.all_sprites:

@@ -1,6 +1,7 @@
 import pygame as pg
 from settings import *
 from os import path
+import pytmx
 
 def collide_hit_rect(one,two):
     return one.hit_rect.colliderect(two.rect)
@@ -34,6 +35,42 @@ class Map:
         # Pixel height of the map
         self.height = self.tileheight * TILESIZE
 
+# Class to render my tiled map made in Tiled
+class TiledMap:
+    def __init__(self,filename):
+        # Using pytmx with pygame to read the tiled map and render it.
+        tm = pytmx.load_pygame(filename,pixelalpha=True)
+        self.width = tm.width * tm.tilewidth
+        self.height = tm.height * tm.tileheight
+        self.tmxdata = tm
+
+    def render(self,surface):
+        # Aliasing this command because I ceebs typing it over and over again..
+        ti = self.tmxdata.get_tile_image_by_gid
+
+        # Going thru each visible layer in the tiledmap
+        for layer in self.tmxdata.visible_layers:
+            # If the layer is a tiled layer (theres multiple types of layers in Tiled)
+            if isinstance(layer, pytmx.TiledTileLayer):
+                # Get the coordinates and globalid of each tile in the layer
+                for x,y,gid, in layer:
+                    # Get tile
+                    tile = ti(gid)
+                    # If its a tile
+                    if tile:
+                        # Draw the tile onto the surface (blit it)
+                        surface.blit(tile,(x*self.tmxdata.tilewidth,
+                                            y*self.tmxdata.tileheight))
+
+    # Make a map by rendering all tiles in proper locations on a surface and return
+    # the surface
+    def make_map(self):
+        temp_surface = pg.Surface((self.width, self.height))
+        self.render(temp_surface)
+        return temp_surface
+
+
+
 # Controls the camera. Draws the map shifted with an offset.
 # Keeps everything consistent, keep track of an offset, how far to the left
 # or right do we want to draw the map?
@@ -47,6 +84,9 @@ class Camera:
 
     def apply(self,entity):
         return entity.rect.move(self.camera.topleft)
+
+    def apply_rect(self,rect):
+        return rect.move(self.camera.topleft)
 
     # Shift camera with player sprite.
     def update(self,target):
