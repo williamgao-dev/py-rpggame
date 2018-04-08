@@ -1,8 +1,61 @@
 import pygame as pg
 from tilemap import collide_hit_rect
 from settings import *
+import random
 # Loading pygame vector class
 vec = pg.math.Vector2
+
+
+def collide_with_walls(sprite, group, dir):
+    '''
+        My nifty little collision checker.
+        Having TWO checks ensures that in event of one x or y value collision,
+        Movement the other way still works, thus we can slide down walls.
+        If direction is x, detect collisions.
+
+        rect HIT_RECT is used for collisions instead of the normal rectangle
+        as it provides more consistent collisions as it is a static rectangle
+        unlike the rectangle surrounding the player sprite that's used to track
+        movement
+
+        This function is not a method of any class, which means that this function
+        will work with any sprite, give the sprite, the group the collision checker
+        must check with, and the direction.
+
+    '''
+
+    # If direction is x, perform collision checking for x axis
+    if dir == 'x':
+        # Detects collision between player and walls.
+        hits = pg.sprite.spritecollide(sprite, group, False, collide_hit_rect)
+        # If hits == True.
+        if hits:
+            # If velocity is right,
+            if hits[0].rect.centerx > sprite.hit_rect.centerx:
+                sprite.pos.x = hits[0].rect.left - sprite.hit_rect.width / 2.0
+            # If velocity is left
+            if hits[0].rect.centerx < sprite.hit_rect.centerx:
+                sprite.pos.x = hits[0].rect.right + sprite.hit_rect.width / 2.0
+            sprite.vel.x = 0
+            sprite.hit_rect.centerx = sprite.pos.x
+
+    # If direction is y, perform collision checking for y axis
+    if dir == 'y':
+        # Detects collision between player and walls.
+        hits = pg.sprite.spritecollide(sprite, sprite.game.walls, False, collide_hit_rect)
+        # If hits == True
+        if hits:
+            # If velocity is down
+            if hits[0].rect.centery > sprite.hit_rect.centery > 0:
+                sprite.pos.y = hits[0].rect.top - sprite.hit_rect.height / 2.0
+            # If velocity is up
+            if hits[0].rect.centery < sprite.hit_rect.centery:
+                sprite.pos.y = hits[0].rect.bottom + sprite.hit_rect.height / 2.0
+            sprite.vel.y = 0
+            sprite.hit_rect.centery = sprite.pos.y
+
+
+
 
 # Player sprite class
 class Player(pg.sprite.Sprite):
@@ -33,6 +86,11 @@ class Player(pg.sprite.Sprite):
 
         self.rot = 0
 
+        self.last_shot = 0
+
+        # Set health
+        self.health = PLAYER_HEALTH
+
     # Function to get key presses, and move character in direction in event of keypress
     def get_keys(self):
 
@@ -58,6 +116,16 @@ class Player(pg.sprite.Sprite):
         if keys[pg.K_DOWN] or keys[pg.K_s]:
             self.vel = vec(-PLAYER_SPEED/2,0).rotate(-self.rot)
 
+        # Shoot when space is pressed
+        if keys[pg.K_SPACE]:
+            now = pg.time.get_ticks()
+            if now - self.last_shot > BULLET_RATE:
+                self.last_shot = now
+                dir = vec(1, 0).rotate(-self.rot)
+                pos = self.pos + BARREL_OFFSET.rotate(-self.rot)
+                Bullet(self.game, pos, dir)
+                self.vel = vec(-KICKBACK, 0).rotate(-self.rot)
+
 
     # Function that WILL executes at every frame of the game.
     def update(self):
@@ -81,59 +149,18 @@ class Player(pg.sprite.Sprite):
         self.hit_rect.centerx = self.pos.x
 
         # Calls collide_with_walls('x') every frame, checking if theres a collision
-        self.collide_with_walls('x')
+        collide_with_walls(self,self.game.walls,'x')
 
         # Update y value
         self.hit_rect.centery = self.pos.y
 
         # Calls collide_with_walls('y') every frame
-        self.collide_with_walls('y')
+        collide_with_walls(self,self.game.walls,'y')
 
 
         self.rect.center = self.hit_rect.center
 
-    def collide_with_walls(self,dir):
-        '''
-            My nifty little collision checker.
-            Having TWO checks ensures that in event of one x or y value collision,
-            Movement the other way still works, thus we can slide down walls.
-            If direction is x, detect collisions.
 
-            rect HIT_RECT is used for collisions instead of the normal rectangle
-            as it provides more consistent collisions as it is a static rectangle
-            unlike the rectangle surrounding the player sprite that's used to track
-            movement
-        '''
-
-        # If direction is x, perform collision checking for x axis
-        if dir == 'x':
-            # Detects collision between player and walls.
-            hits = pg.sprite.spritecollide(self,self.game.walls,False, collide_hit_rect)
-            # If hits == True.
-            if hits:
-                # If velocity is right,
-                if self.vel.x > 0:
-                    self.pos.x = hits[0].rect.left - self.hit_rect.width / 2.0
-                # If velocity is left
-                if self.vel.x < 0:
-                    self.pos.x = hits[0].rect.right + self.hit_rect.width / 2.0
-                self.vel.x = 0
-                self.hit_rect.centerx = self.pos.x
-
-        # If direction is y, perform collision checking for y axis
-        if dir == 'y':
-            # Detects collision between player and walls.
-            hits = pg.sprite.spritecollide(self,self.game.walls,False, collide_hit_rect)
-            # If hits == True
-            if hits:
-                # If velocity is down
-                if self.vel.y > 0:
-                    self.pos.y = hits[0].rect.top - self.hit_rect.height / 2.0
-                # If velocity is up
-                if self.vel.y < 0:
-                    self.pos.y = hits[0].rect.bottom + self.hit_rect.height / 2.0
-                self.vel.y = 0
-                self.hit_rect.centery = self.pos.y
 
 # Wall sprite class
 class Wall(pg.sprite.Sprite):
@@ -170,15 +197,77 @@ class Mob(pg.sprite.Sprite):
 
         self.image = game.mob_img
         self.rect = self.image.get_rect()
+        self.hit_rect = MOB_HIT_RECT.copy()
+        self.hit_rect.center = self.rect.center
         self.pos = vec(x,y) * TILESIZE
         self.rect.center = self.pos
         self.rot = 0
+        self.health = 100
+
+        # Vectors
+        self.vel = vec(0,0)
+        self.acc = vec(0,0)
 
     def update(self):
         self.rot = (self.game.player.pos - self.pos).angle_to(vec(1,0))
         self.image = pg.transform.rotate(self.game.mob_img, self.rot)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
+        self.acc = vec(MOB_SPEED,0).rotate(-self.rot)
+        self.acc += self.vel * -1
+        self.vel += self.acc * self.game.dt
+        self.pos += self.vel * self.game.dt + 0.5 * self.acc * self.game.dt ** 2
+        self.hit_rect.centerx = self.pos.x
+        collide_with_walls(self, self.game.walls, 'x')
+        self.hit_rect.centery = self.pos.y
+        collide_with_walls(self,self.game.walls,'y')
+
+        if self.health <= 0:
+            self.kill()
+
+
+    def draw_health(self):
+        if self.health > 60:
+            col = GREEN
+        elif self.health > 30:
+            col = YELLOW
+        else:
+            col = RED
+        width = int(self.rect.width * self.health / MOB_HEALTH)
+        self.health_bar = pg.Rect(0,0, width, 7)
+        if self.health < 100:
+            pg.draw.rect(self.image, col, self.health_bar)
 
 
 
+# Mob sprite class
+class Bullet(pg.sprite.Sprite):
+    def __init__(self,game,pos,dir):
+
+        # Defines which groups the sprite should be in
+        self.groups = game.all_sprites, game.bullets
+
+        # Initalizes into groups (defined above)
+        pg.sprite.Sprite.__init__(self,self.groups)
+        self.game = game
+        self.image = game.bullet_img
+        self.rect = self.image.get_rect()
+        self.pos = vec(pos)
+        self.rect.center = pos
+
+        # Add some randomness to the bullets being shot
+        # This will make the bullets shoot on a slightly different offset every Bullet
+        spread =  random.uniform(-GUN_SPREAD, GUN_SPREAD)
+
+        self.vel = dir.rotate(spread) * BULLET_SPEED
+        self.spawn_time = pg.time.get_ticks()
+
+    def update(self):
+        self.pos += self.vel * self.game.dt
+        self.rect.center = self.pos
+
+        if pg.time.get_ticks() - self.spawn_time > BULLET_LIFETIME:
+            self.kill()
+        # If bullet hits any wall, it stops.
+        if pg.sprite.spritecollideany(self,self.game.walls):
+            self.kill()

@@ -27,6 +27,27 @@ from os import path
 from sprites import *
 from tilemap import *
 
+# HUD Function
+# Function to draw player health onto screen. Will be called within
+# update function
+def draw_player_health(surf, x,y, percent):
+    # Cannot have negative health
+    if percent < 0:
+        percent = 0
+    BAR_LENGTH = 100
+    BAR_HEIGHT = 20
+    fill = percent * BAR_LENGTH
+    outline_rect = pg.Rect(x,y, BAR_LENGTH, BAR_HEIGHT)
+    fill_rect = pg.Rect(x,y,fill,BAR_HEIGHT)
+    if percent > 0.6:
+        col = GREEN
+    elif percent > 0.3:
+        col = YELLOW
+    else:
+        col = RED
+    pg.draw.rect(surf,col,fill_rect)
+    pg.draw.rect(surf,WHITE,outline_rect,2)
+
 class Game:
     def __init__(self):
         # Initialize pygame, pg sounds & game window, etc
@@ -57,6 +78,8 @@ class Game:
         self.player_img = pg.image.load(path.join(img_folder, PLAYER_IMG)).convert_alpha()
         self.wall_img = pg.image.load(path.join(img_folder, WALL_IMG)).convert_alpha()
         self.mob_img = pg.image.load(path.join(img_folder, MOB_IMG)).convert_alpha()
+        self.bullet_img = pg.image.load(path.join(img_folder, BULLET_IMG)).convert_alpha()
+
 
 
         # Resize wall_img to match the wall size (tilesize)
@@ -74,6 +97,7 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.mobs = pg.sprite.Group()
+        self.bullets = pg.sprite.Group()
 
         # Enumerate takes item AND index number <=== IMPORTANT!
         for row, tiles in enumerate(self.map.data):
@@ -122,6 +146,26 @@ class Game:
         # it to follow! In this case, we require the map to move with the camera.
         self.camera.update(self.player)
 
+        # If mobs hit player
+        hits = pg.sprite.spritecollide(self.player, self.mobs, False, collide_hit_rect)
+        for hit in hits:
+            self.player.health -= MOB_DAMAGE
+            hit.vel = vec(0,0)
+            if self.player.health <= 0:
+                self.playing = False
+
+        if hits:
+            self.player.pos += vec(MOB_KNOCKBACK,0).rotate(-hits[0].rot)
+
+        # If bullets hit a mob
+        hits = pg.sprite.groupcollide(self.mobs, self.bullets, False, True)
+        for hit in hits:
+            # Remove BULLET_DAMAGE health from the mobs health
+            hit.health -= BULLET_DAMAGE
+
+            # THIS IS AWESOME! Now the bullets have stopping power.,
+            hit.vel = vec(0,0)
+
     # Event handling
     def events(self):
 
@@ -154,6 +198,9 @@ class Game:
         if DEBUG_MODE == "ON":
             pg.display.set_caption("{:.2f}".format(self.clock.get_fps()))
         self.screen.fill(BGCOLOR)
+        for sprite in self.all_sprites:
+            if isinstance(sprite, Mob):
+                sprite.draw_health()
         if DRAW_GRID == "ON":
             self.draw_grid()
         for sprite in self.all_sprites:
@@ -162,6 +209,7 @@ class Game:
         # This will draw a rect around the player hitbox (DEBUG_MODE)
         if DEBUG_MODE == "ON":
             pg.draw.rect(self.screen, WHITE, self.player.hit_rect, 2)
+        draw_player_health(self.screen, 10,10, self.player.health/PLAYER_HEALTH)
         pg.display.flip()
 
     def show_start_screen(self):

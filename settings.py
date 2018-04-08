@@ -1,6 +1,6 @@
 import pygame as pg
-
-DEBUG_MODE = "OFF"
+vec = pg.math.Vector2
+DEBUG_MODE = "ON"
 DRAW_GRID = "OFF"
 
 
@@ -31,10 +31,31 @@ GRIDHEIGHT = HEIGHT/TILESIZE
 WALL_IMG = 'tileGreen_39.png'
 
 # Player settings
-PLAYER_SPEED = 200
-PLAYER_IMG = 'manBlue_gun.png'
+PLAYER_SPEED = 300
+PLAYER_HEALTH = 100
 PLAYER_ROT_SPEED = 250
-PLAYER_HIT_RECT = pg.Rect(0,0,35,35)
+PLAYER_IMG = 'manBlue_gun.png'
+PLAYER_HIT_RECT = pg.Rect(0, 0, 35, 35)
+# Offset of bullets coming out of the player so it looks like it comes out of the actual gun
+BARREL_OFFSET = vec(30, 10)
+# Player will be pushed back when shooting (KICKBACK)
+KICKBACK = 200
 
-# Mob settings
+# Mob settings`
 MOB_IMG = 'zombie1_hold.png'
+MOB_SPEED = 150
+MOB_HIT_RECT = pg.Rect(0,0,0,35)
+MOB_HEALTH = 100
+MOB_DAMAGE = 10
+MOB_KNOCKBACK = 20
+
+# Gun settings
+BULLET_IMG = 'bullet.png'
+BULLET_SPEED = 500
+BULLET_LIFETIME = 1000
+BULLET_RATE = 150
+GUN_SPREAD = 10
+if DEBUG_MODE == "ON":
+    BULLET_DAMAGE = MOB_HEALTH
+else:
+    BULLET_DAMAGE = 10
