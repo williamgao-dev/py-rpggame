@@ -54,7 +54,13 @@ class Game:
 
         # Player image variable initalization
         # PLAYER_IMG is specified in the constants in settings.py
-        self.player_img = pg.image.load(path.join(img_folder, PLAYER_IMG))
+        self.player_img = pg.image.load(path.join(img_folder, PLAYER_IMG)).convert_alpha()
+        self.wall_img = pg.image.load(path.join(img_folder, WALL_IMG)).convert_alpha()
+        self.mob_img = pg.image.load(path.join(img_folder, MOB_IMG)).convert_alpha()
+
+
+        # Resize wall_img to match the wall size (tilesize)
+        self.wall_img = pg.transform.scale(self.wall_img, (TILESIZE, TILESIZE))
 
     # Quit function
     def quit(self):
@@ -67,6 +73,7 @@ class Game:
         # Initalizes the all_sprites and walls group
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
+        self.mobs = pg.sprite.Group()
 
         # Enumerate takes item AND index number <=== IMPORTANT!
         for row, tiles in enumerate(self.map.data):
@@ -79,6 +86,10 @@ class Game:
                 # If tile is P, spawn a Player sprite at the x and y coordinates
                 if tile == 'P':
                     self.player = Player(self,col,row)
+
+                # If tile is M, spawn a Player sprite at the x and y coordinates
+                if tile == 'M':
+                    Mob(self,col,row)
 
         # Initalize the camera
         self.camera = Camera(self.map.width,self.map.height)
@@ -98,6 +109,10 @@ class Game:
 
     # Updates all groups every frame per second
     def update(self):
+
+        # Alert of debug_mode is off
+        if DEBUG_MODE == "OFF":
+            print("DEBUG MODE OFF")
 
         # Game Loop - Update
         self.all_sprites.update()
@@ -136,8 +151,11 @@ class Game:
     # Blits and draws all sprites to screen
 
     def draw(self):
-        self.screen.fill(BLACK)
-        self.draw_grid()
+        if DEBUG_MODE == "ON":
+            pg.display.set_caption("{:.2f}".format(self.clock.get_fps()))
+        self.screen.fill(BGCOLOR)
+        if DRAW_GRID == "ON":
+            self.draw_grid()
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image,self.camera.apply(sprite))
 

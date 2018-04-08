@@ -139,6 +139,7 @@ class Player(pg.sprite.Sprite):
 class Wall(pg.sprite.Sprite):
     def __init__(self,game,x,y):
 
+
         # Defines which groups the sprite should be in
         self.groups = game.all_sprites, game.walls
 
@@ -147,8 +148,7 @@ class Wall(pg.sprite.Sprite):
 
         # Attributes of the wall
         self.game = game
-        self.image = pg.Surface((TILESIZE, TILESIZE))
-        self.image.fill(GREEN)
+        self.image = game.wall_img
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
@@ -156,3 +156,29 @@ class Wall(pg.sprite.Sprite):
         # Makes the wall the size of a tile
         self.rect.x = x * TILESIZE
         self.rect.y = y * TILESIZE
+
+# Mob sprite class
+class Mob(pg.sprite.Sprite):
+    def __init__(self,game,x,y):
+
+        # Defines which groups the sprite should be in
+        self.groups = game.all_sprites, game.mobs
+        self.game = game
+
+        # Initalizes into groups (defined above)
+        pg.sprite.Sprite.__init__(self,self.groups)
+
+        self.image = game.mob_img
+        self.rect = self.image.get_rect()
+        self.pos = vec(x,y) * TILESIZE
+        self.rect.center = self.pos
+        self.rot = 0
+
+    def update(self):
+        self.rot = (self.game.player.pos - self.pos).angle_to(vec(1,0))
+        self.image = pg.transform.rotate(self.game.mob_img, self.rot)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
+
+
+
