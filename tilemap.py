@@ -69,8 +69,6 @@ class TiledMap:
         self.render(temp_surface)
         return temp_surface
 
-
-
 # Controls the camera. Draws the map shifted with an offset.
 # Keeps everything consistent, keep track of an offset, how far to the left
 # or right do we want to draw the map?
